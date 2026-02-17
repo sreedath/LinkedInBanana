@@ -50,6 +50,8 @@ class VisualizerAgent(BaseAgent):
         output_path: Optional[str] = None,
         iteration: int = 0,
         seed: Optional[int] = None,
+        width: Optional[int] = None,
+        height: Optional[int] = None,
     ) -> str:
         """Generate an image from a description.
 
@@ -60,6 +62,8 @@ class VisualizerAgent(BaseAgent):
             output_path: Where to save the generated image.
             iteration: Current iteration number (for naming).
             seed: Random seed for reproducibility.
+            width: Output image width (defaults to 1792 for diagrams).
+            height: Output image height (defaults to 1024 for diagrams).
 
         Returns:
             Path to the generated image.
@@ -67,7 +71,14 @@ class VisualizerAgent(BaseAgent):
         if diagram_type == DiagramType.STATISTICAL_PLOT:
             return await self._generate_plot(description, raw_data, output_path, iteration)
         else:
-            return await self._generate_diagram(description, output_path, iteration, seed)
+            # Select prompt type based on diagram type
+            prompt_type = "diagram"
+            if diagram_type == DiagramType.LINKEDIN_PLAYLIST:
+                prompt_type = "linkedin_playlist"
+            return await self._generate_diagram(
+                description, output_path, iteration, seed,
+                width, height, prompt_type,
+            )
 
     async def _generate_diagram(
         self,
@@ -75,17 +86,29 @@ class VisualizerAgent(BaseAgent):
         output_path: Optional[str],
         iteration: int,
         seed: Optional[int],
+        width: Optional[int] = None,
+        height: Optional[int] = None,
+        prompt_type: str = "diagram",
     ) -> str:
-        """Generate a methodology diagram using the image generation model."""
-        template = self.load_prompt("diagram")
+        """Generate a diagram/image using the image generation model."""
+        template = self.load_prompt(prompt_type)
         prompt = self.format_prompt(template, description=description)
 
-        logger.info("Generating diagram image", iteration=iteration)
+        img_width = width or 1792
+        img_height = height or 1024
+
+        logger.info(
+            "Generating image",
+            iteration=iteration,
+            width=img_width,
+            height=img_height,
+            prompt_type=prompt_type,
+        )
 
         image = await self.image_gen.generate(
             prompt=prompt,
-            width=1792,
-            height=1024,
+            width=img_width,
+            height=img_height,
             seed=seed,
         )
 

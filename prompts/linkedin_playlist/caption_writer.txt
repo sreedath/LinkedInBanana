@@ -1,0 +1,42 @@
+You are writing a LinkedIn post to accompany a playlist summary image. Write it naturally, as a knowledgeable person sharing something useful with their network.
+
+## Playlist Data
+{playlist_summary}
+
+## Image Description
+{image_description}
+
+## Playlist URL
+{playlist_url}
+
+## What to Write
+
+Write a LinkedIn post that explains what this playlist covers and why it is worth watching. Use the actual content from the playlist (video titles, topics, key concepts) to make the post specific and concrete.
+
+The post must have 4 to 5 short paragraphs, separated by blank lines. Each paragraph should be 2 to 4 sentences. Here is the flow:
+
+1. Opening paragraph: A strong first line that makes someone stop scrolling. Set up what this playlist is about and why it matters.
+
+2. Middle paragraphs (2 to 3 paragraphs): Walk through the key ideas, topics, or papers covered in the playlist. Be specific. Reference actual video topics. Each paragraph should cover one idea or theme.
+
+3. Closing paragraph: Tie it back to Vizuara naturally. Vizuara is the educational platform and team that created this playlist content. Do not just drop the name. Explain briefly what Vizuara does in the context of this topic (for example: "We created this playlist as part of the Vizuara series on [topic], where we break down [subject] into clear, visual explanations."). Include the playlist link. End with a call to action inviting people to watch, follow, or share their thoughts.
+
+## Writing Rules
+
+- No contractions (write "do not" not "don't", "it is" not "it's")
+- No em dashes or en dashes
+- No emojis
+- No hashtags
+- Paragraphs must be short: 2 to 4 sentences each
+- Separate each paragraph with a blank line
+- Straightforward tone, no fluff
+- Active voice
+- 250 to 500 words total
+
+## Output Format
+
+Respond in this exact JSON format:
+{{
+    "caption": "The full LinkedIn post text. Use actual newline characters to separate paragraphs. Put a blank line between each paragraph.",
+    "description": "A one-sentence summary for alt-text"
+}}

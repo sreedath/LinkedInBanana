@@ -26,12 +26,16 @@ Thumbs.db
 # Outputs and generated images
 outputs/
 run_*/
-*.png
-*.jpg
-*.jpeg
 !data/reference_sets/**/*.png
 !data/reference_sets/**/*.jpg
 !assets/img/hero_image.png
+!frontend/public/*.png
+!frontend/public/*.ico
+
+# Frontend build artifacts
+frontend/.next/
+frontend/out/
+frontend/node_modules/
 
 # Reference set build artifacts (large, copyrighted PDFs)
 data/reference_sets/output/

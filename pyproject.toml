@@ -39,6 +39,10 @@ dependencies = [
     "tenacity>=8.0",
     "structlog>=24.0",
     "python-dotenv>=1.0",
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "sse-starlette>=2.0",
+    "google-api-python-client>=2.0",
 ]
 
 [project.optional-dependencies]
@@ -61,6 +65,7 @@ Issues = "https://github.com/llmsresearch/paperbanana/issues"
 [project.scripts]
 paperbanana = "paperbanana.cli:app"
 paperbanana-mcp = "mcp_server.server:main"
+linkedinbanana-api = "paperbanana.api.server:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["paperbanana", "mcp_server"]

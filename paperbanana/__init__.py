@@ -10,11 +10,23 @@ if sys.platform == "win32":
 __version__ = "0.1.0"
 
 from paperbanana.core.pipeline import PaperBananaPipeline
-from paperbanana.core.types import DiagramType, GenerationInput, GenerationOutput
+from paperbanana.core.linkedin_pipeline import LinkedInPlaylistPipeline
+from paperbanana.core.types import (
+    DiagramType,
+    GenerationInput,
+    GenerationOutput,
+    LinkedInFormat,
+    PlaylistGenerationInput,
+    PlaylistGenerationOutput,
+)
 
 __all__ = [
     "PaperBananaPipeline",
+    "LinkedInPlaylistPipeline",
     "DiagramType",
     "GenerationInput",
     "GenerationOutput",
+    "LinkedInFormat",
+    "PlaylistGenerationInput",
+    "PlaylistGenerationOutput",
 ]

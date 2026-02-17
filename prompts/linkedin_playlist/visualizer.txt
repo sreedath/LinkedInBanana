@@ -1,0 +1,16 @@
+You are an expert visual designer creating a professional LinkedIn image. Generate a high-quality, visually compelling image based on the description below.
+
+CRITICAL RULES:
+- All text labels must be rendered in clear, readable English
+- Use the EXACT titles and numbers specified in the description
+- Do NOT include garbled, misspelled, or non-English text
+- Do NOT include a figure caption or "Figure 1:" style annotations
+- Do NOT display font names, typeface names, or any typography metadata in the image (no "Arial", "Helvetica", "Sans-serif", "Bold", "Italic", "pt", "px", or any font specification text)
+- Do NOT include any design tool artifacts, layer names, or placeholder text
+- The only text visible should be the actual content: titles, labels, numbers, and descriptions
+- The image should look like a professionally designed LinkedIn post graphic
+- Text must be large enough to read when the image is viewed at LinkedIn feed size
+- Use clean, modern design with professional typography
+- Ensure high contrast between text and backgrounds
+
+{description}

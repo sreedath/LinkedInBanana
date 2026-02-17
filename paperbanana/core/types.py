@@ -13,6 +13,22 @@ class DiagramType(str, Enum):
 
     METHODOLOGY = "methodology"
     STATISTICAL_PLOT = "statistical_plot"
+    LINKEDIN_PLAYLIST = "linkedin_playlist"
+
+
+class LinkedInFormat(str, Enum):
+    """LinkedIn image format options."""
+
+    LANDSCAPE = "landscape"  # 1200x627
+    SQUARE = "square"  # 1080x1080
+
+    @property
+    def width(self) -> int:
+        return 1200 if self == LinkedInFormat.LANDSCAPE else 1080
+
+    @property
+    def height(self) -> int:
+        return 627 if self == LinkedInFormat.LANDSCAPE else 1080
 
 
 class GenerationInput(BaseModel):
@@ -116,6 +132,27 @@ class EvaluationScore(BaseModel):
         le=100.0,
         description="100 (Model wins), 0 (Human wins), 50 (Tie)",
     )
+
+
+class PlaylistGenerationInput(BaseModel):
+    """Input to the LinkedIn playlist image generation pipeline."""
+
+    playlist_data: Any = Field(description="PlaylistData from YouTube scraper")
+    format: str = Field(default="landscape", description="LinkedIn format: landscape or square")
+    generate_caption: bool = Field(default=True, description="Whether to generate a LinkedIn caption")
+
+
+class PlaylistGenerationOutput(BaseModel):
+    """Output from the LinkedIn playlist image generation pipeline."""
+
+    image_path: str = Field(description="Path to the final generated image")
+    caption: str = Field(default="", description="Generated LinkedIn caption")
+    description: str = Field(default="", description="Generated LinkedIn description")
+    hashtags: list[str] = Field(default_factory=list, description="Suggested hashtags")
+    iterations: list[IterationRecord] = Field(
+        default_factory=list, description="History of refinement iterations"
+    )
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class RunMetadata(BaseModel):
