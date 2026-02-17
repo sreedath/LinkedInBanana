@@ -16,15 +16,15 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
+# Copy application code (needed before pip install for hatch force-includes)
 COPY pyproject.toml README.md ./
-RUN pip install --no-cache-dir .
-
-# Copy application code
 COPY paperbanana/ ./paperbanana/
 COPY prompts/ ./prompts/
 COPY configs/ ./configs/
 COPY data/ ./data/
+
+# Install Python dependencies
+RUN pip install --no-cache-dir .
 
 # Copy built frontend
 COPY --from=frontend-build /app/frontend/out ./frontend/out
