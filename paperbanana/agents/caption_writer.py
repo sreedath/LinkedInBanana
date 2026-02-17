@@ -71,18 +71,41 @@ class CaptionWriterAgent(BaseAgent):
 
     def _parse_response(self, response: str) -> dict[str, str | list[str]]:
         """Parse the VLM response into caption data."""
+        caption = ""
+        description = ""
+
+        # Strip markdown code fences if present
+        text = response.strip()
+        if text.startswith("```"):
+            lines = text.split("\n")
+            # Remove first line (```json) and last line (```)
+            lines = [l for l in lines if not l.strip().startswith("```")]
+            text = "\n".join(lines).strip()
+
         try:
-            data = json.loads(response)
-            caption = data.get("caption", "")
-            description = data.get("description", "")
-        except (json.JSONDecodeError, KeyError) as e:
-            logger.warning("Failed to parse caption response", error=str(e))
-            caption = response.strip()
-            description = ""
+            data = json.loads(text)
+            if isinstance(data, dict):
+                caption = data.get("caption", "")
+                description = data.get("description", "")
+        except (json.JSONDecodeError, ValueError) as e:
+            # Try extracting JSON between first { and last }
+            start = text.find("{")
+            end = text.rfind("}")
+            if start != -1 and end > start:
+                try:
+                    data = json.loads(text[start : end + 1])
+                    if isinstance(data, dict):
+                        caption = data.get("caption", "")
+                        description = data.get("description", "")
+                except (json.JSONDecodeError, ValueError):
+                    pass
+
+            if not caption:
+                logger.warning("Failed to parse caption response", error=str(e))
+                caption = text
 
         # Clean up: replace literal \n with actual newlines
         caption = caption.replace("\\n", "\n")
-        # Remove any other escaped special chars that would look wrong in LinkedIn
         caption = caption.replace("\\t", " ")
 
         return {
