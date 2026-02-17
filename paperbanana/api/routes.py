@@ -139,7 +139,10 @@ async def create_playlist_job(request: PlaylistRequest):
         custom_instructions=request.custom_instructions,
     )
 
-    settings = Settings()
+    settings = Settings(
+        google_api_key=request.google_api_key,
+        youtube_api_key=request.youtube_api_key,
+    )
     asyncio.create_task(_run_pipeline(job, settings))
 
     return JobCreatedResponse(job_id=job.job_id, status="queued")

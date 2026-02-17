@@ -14,6 +14,8 @@ class PlaylistRequest(BaseModel):
     format: str = Field(default="landscape", description="Image format: landscape or square")
     generate_caption: bool = Field(default=True, description="Whether to generate a LinkedIn caption")
     custom_instructions: str = Field(default="", description="Custom instructions for image generation")
+    google_api_key: str = Field(description="Google Gemini API key")
+    youtube_api_key: str = Field(description="YouTube Data API key")
 
 
 class JobCreatedResponse(BaseModel):

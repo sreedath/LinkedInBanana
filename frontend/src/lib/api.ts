@@ -15,6 +15,37 @@ export interface PlaylistRequest {
   format: "landscape" | "square";
   generate_caption: boolean;
   custom_instructions: string;
+  google_api_key: string;
+  youtube_api_key: string;
+}
+
+const API_KEYS_STORAGE_KEY = "linkedinbanana_api_keys";
+
+export function saveApiKeys(googleApiKey: string, youtubeApiKey: string): void {
+  localStorage.setItem(
+    API_KEYS_STORAGE_KEY,
+    JSON.stringify({ google_api_key: googleApiKey, youtube_api_key: youtubeApiKey })
+  );
+}
+
+export function loadApiKeys(): { google_api_key: string; youtube_api_key: string } {
+  try {
+    const stored = localStorage.getItem(API_KEYS_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return {
+        google_api_key: parsed.google_api_key || "",
+        youtube_api_key: parsed.youtube_api_key || "",
+      };
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return { google_api_key: "", youtube_api_key: "" };
+}
+
+export function clearApiKeys(): void {
+  localStorage.removeItem(API_KEYS_STORAGE_KEY);
 }
 
 export interface JobCreatedResponse {
