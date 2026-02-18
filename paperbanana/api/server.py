@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 
+import structlog
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,8 +16,36 @@ from fastapi.staticfiles import StaticFiles
 
 from paperbanana.api.routes import router
 
+logger = structlog.get_logger()
+
 # Resolve frontend build directory
 _FRONTEND_DIR = Path(os.environ.get("FRONTEND_DIR", "frontend/out"))
+
+
+async def _scheduler_loop():
+    """Background task that polls for due scheduled posts every 60 seconds."""
+    from paperbanana.api.linkedin import publish_due_posts
+
+    while True:
+        try:
+            count = await publish_due_posts()
+            if count:
+                logger.info("Scheduler published posts", count=count)
+        except Exception as e:
+            logger.error("Scheduler error", error=str(e))
+        await asyncio.sleep(60)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Start and stop the background scheduler."""
+    task = asyncio.create_task(_scheduler_loop())
+    yield
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
 
 
 def create_app() -> FastAPI:
@@ -23,6 +54,7 @@ def create_app() -> FastAPI:
         title="LinkedInBanana",
         description="Generate LinkedIn-ready images from YouTube playlists",
         version="0.1.0",
+        lifespan=lifespan,
     )
 
     # CORS middleware for local development

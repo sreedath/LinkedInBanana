@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 
 import structlog
 
@@ -27,6 +28,40 @@ class CaptionWriterAgent(BaseAgent):
     def agent_name(self) -> str:
         return "caption_writer"
 
+    def _build_video_links(self, playlist_data: PlaylistData, max_videos: int = 10) -> str:
+        """Build a formatted list of video links for the prompt.
+
+        If the playlist has more videos than max_videos, select the top ones
+        by view count while preserving original playlist order.
+        """
+        videos = playlist_data.videos
+        if not videos:
+            return "No individual video links available."
+
+        if len(videos) > max_videos:
+            # Select top videos by view count, then restore original order
+            indexed = list(enumerate(videos))
+            top_by_views = sorted(indexed, key=lambda x: x[1].view_count, reverse=True)[:max_videos]
+            top_by_views.sort(key=lambda x: x[0])  # Restore playlist order
+            selected = [v for _, v in top_by_views]
+            truncated = True
+        else:
+            selected = videos
+            truncated = False
+
+        lines = []
+        for v in selected:
+            url = f"https://www.youtube.com/watch?v={v.video_id}"
+            lines.append(f"- {v.title}: {url}")
+
+        if truncated:
+            lines.append(
+                f"\n(Showing {len(selected)} of {len(videos)} videos. "
+                "See the full playlist for all videos.)"
+            )
+
+        return "\n".join(lines)
+
     async def run(
         self,
         playlist_data: PlaylistData,
@@ -44,6 +79,7 @@ class CaptionWriterAgent(BaseAgent):
             Dict with keys: caption, description, hashtags.
         """
         playlist_summary = playlist_data.summary()
+        video_links = self._build_video_links(playlist_data)
 
         template = self.load_prompt("linkedin_playlist")
         prompt = self.format_prompt(
@@ -51,6 +87,7 @@ class CaptionWriterAgent(BaseAgent):
             playlist_summary=playlist_summary,
             image_description=image_description,
             playlist_url=playlist_url,
+            video_links=video_links,
         )
 
         logger.info("Running caption writer", playlist_title=playlist_data.title)
@@ -58,7 +95,7 @@ class CaptionWriterAgent(BaseAgent):
         response = await self.vlm.generate(
             prompt=prompt,
             temperature=0.7,
-            max_tokens=4096,
+            max_tokens=8192,
             response_format="json",
         )
 
@@ -68,6 +105,25 @@ class CaptionWriterAgent(BaseAgent):
             caption_length=len(result.get("caption", "")),
         )
         return result
+
+    def _extract_text(self, value: object) -> str:
+        """Recursively extract text from a value that may be a nested dict or list."""
+        if isinstance(value, str):
+            return value
+        if isinstance(value, dict):
+            # Try common keys first
+            for key in ("caption", "text", "content", "body"):
+                if key in value:
+                    return self._extract_text(value[key])
+            # Fall back to first string value
+            for v in value.values():
+                result = self._extract_text(v)
+                if result:
+                    return result
+        if isinstance(value, list):
+            parts = [self._extract_text(item) for item in value]
+            return "\n\n".join(p for p in parts if p)
+        return str(value) if value else ""
 
     def _parse_response(self, response: str) -> dict[str, str | list[str]]:
         """Parse the VLM response into caption data."""
@@ -85,8 +141,8 @@ class CaptionWriterAgent(BaseAgent):
         try:
             data = json.loads(text)
             if isinstance(data, dict):
-                caption = data.get("caption", "")
-                description = data.get("description", "")
+                caption = self._extract_text(data.get("caption", ""))
+                description = self._extract_text(data.get("description", ""))
         except (json.JSONDecodeError, ValueError) as e:
             # Try extracting JSON between first { and last }
             start = text.find("{")
@@ -95,8 +151,8 @@ class CaptionWriterAgent(BaseAgent):
                 try:
                     data = json.loads(text[start : end + 1])
                     if isinstance(data, dict):
-                        caption = data.get("caption", "")
-                        description = data.get("description", "")
+                        caption = self._extract_text(data.get("caption", ""))
+                        description = self._extract_text(data.get("description", ""))
                 except (json.JSONDecodeError, ValueError):
                     pass
 
@@ -108,8 +164,15 @@ class CaptionWriterAgent(BaseAgent):
         caption = caption.replace("\\n", "\n")
         caption = caption.replace("\\t", " ")
 
+        # Strip residual leading/trailing quotes
+        if len(caption) >= 2 and caption[0] == '"' and caption[-1] == '"':
+            caption = caption[1:-1]
+
+        # Normalize excessive blank lines (3+ newlines -> 2)
+        caption = re.sub(r"\n{3,}", "\n\n", caption)
+
         return {
-            "caption": caption,
+            "caption": caption.strip(),
             "description": description,
             "hashtags": [],
         }

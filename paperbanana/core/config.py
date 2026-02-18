@@ -80,6 +80,11 @@ class Settings(BaseSettings):
     openrouter_api_key: Optional[str] = Field(default=None, alias="OPENROUTER_API_KEY")
     youtube_api_key: Optional[str] = Field(default=None, alias="YOUTUBE_API_KEY")
 
+    # LinkedIn OAuth
+    linkedin_client_id: Optional[str] = Field(default=None, alias="LINKEDIN_CLIENT_ID")
+    linkedin_client_secret: Optional[str] = Field(default=None, alias="LINKEDIN_CLIENT_SECRET")
+    linkedin_allowed_emails: Optional[str] = Field(default=None, alias="LINKEDIN_ALLOWED_EMAILS")
+
     # SSL
     skip_ssl_verification: bool = Field(default=False, alias="SKIP_SSL_VERIFICATION")
 

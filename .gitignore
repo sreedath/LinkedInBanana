@@ -49,6 +49,9 @@ paper.md
 *.pem
 *.p12
 
+# Scheduler database
+data/scheduler.db
+
 # Logs
 *.log
 

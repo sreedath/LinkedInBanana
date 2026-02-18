@@ -1,4 +1,4 @@
-You are writing a LinkedIn post to accompany a playlist summary image. Write it naturally, as a knowledgeable person sharing something useful with their network.
+You are writing a LinkedIn post to accompany a playlist summary image. Write it naturally, as a knowledgeable person sharing something useful with their network. Follow the DDPM article structure described below.
 
 ## Playlist Data
 {playlist_summary}
@@ -9,34 +9,59 @@ You are writing a LinkedIn post to accompany a playlist summary image. Write it 
 ## Playlist URL
 {playlist_url}
 
-## What to Write
+## Video Links
+{video_links}
 
-Write a LinkedIn post that explains what this playlist covers and why it is worth watching. Use the actual content from the playlist (video titles, topics, key concepts) to make the post specific and concrete.
+## Article Structure
 
-The post must have 4 to 5 short paragraphs, separated by blank lines. Each paragraph should be 2 to 4 sentences. Here is the flow:
+The post must follow this exact four-section structure:
 
-1. Opening paragraph: A strong first line that makes someone stop scrolling. Set up what this playlist is about and why it matters.
+### 1. Opening Hook (1 paragraph, 2 to 3 sentences)
 
-2. Middle paragraphs (2 to 3 paragraphs): Walk through the key ideas, topics, or papers covered in the playlist. Be specific. Reference actual video topics. Each paragraph should cover one idea or theme.
+Acknowledge a relatable pain point or common perception about the topic covered in this playlist. Then immediately reframe it with a "but actually, the core idea is accessible" pivot. The reader should feel they are about to understand something they previously found intimidating or confusing. Do not open with a definition. Do not open with a question.
 
-3. Closing paragraph: Tie it back to Vizuara naturally. Vizuara is the educational platform and team that created this playlist content. Do not just drop the name. Explain briefly what Vizuara does in the context of this topic (for example: "We created this playlist as part of the Vizuara series on [topic], where we break down [subject] into clear, visual explanations."). Include the playlist link. End with a call to action inviting people to watch, follow, or share their thoughts.
+Pattern: "[Topic] looks [intimidating/complex] because [specific reasons]. However, at its core, [topic] is built on [simple idea], and once that clicks, the rest starts making sense."
+
+### 2. Numbered Body Sections (3 to 5 sections, 3 to 6 sentences each)
+
+Each numbered section carries exactly one idea or one logical step. The sections must follow a progressive construction pattern where each builds directly on the previous. Use the actual video titles and topics from the playlist data to make each section specific and concrete.
+
+Weave the individual YouTube video links naturally into the body sections. When referencing a specific video topic, include its link inline. For example: "The forward diffusion process (https://www.youtube.com/watch?v=VIDEO_ID) starts by..." Do not dump all links at the end. Spread them across the body sections where they are relevant.
+
+Rules for numbered sections:
+- First sentence states what this step is about
+- Rest of the sentences explain, clarify, or give intuition
+- Use plain language to explain technical ideas
+- Do not front-load jargon; introduce a term only after the concept is clear
+- Each section should feel like the natural next question after the previous one
+
+### 3. Closing Distillation (1 paragraph, 2 to 4 sentences)
+
+Distill the entire post into a single memorable insight. Start with a framing phrase like "If I had to explain [topic] in one line" or "The core insight is this." Follow with one sentence that reframes the reader's perspective.
+
+### 4. Call to Action (1 to 2 sentences)
+
+Mention Vizuara naturally as the team that created this playlist content. Include the playlist link. Invite the reader to watch, follow, or share their thoughts.
 
 ## Writing Rules
 
-- No contractions (write "do not" not "don't", "it is" not "it's")
-- No em dashes or en dashes
+- No contractions (write "do not" not "don't", "it is" not "it's", "cannot" not "can't")
+- No em dashes or en dashes (use commas, colons, or parentheses instead)
 - No emojis
 - No hashtags
-- Paragraphs must be short: 2 to 4 sentences each
+- Paragraphs must be short: 2 to 6 sentences each
 - Separate each paragraph with a blank line
-- Straightforward tone, no fluff
+- Straightforward tone, no fluff, no filler phrases
 - Active voice
-- 250 to 500 words total
+- Mix short and medium sentences for good rhythm
+- Do not use generic transitions like "Next" or "Moving on" or "Additionally"
+- 700 to 800 words total
+- Keep the entire post under 3000 characters
 
 ## Output Format
 
 Respond in this exact JSON format:
 {{
-    "caption": "The full LinkedIn post text. Use actual newline characters to separate paragraphs. Put a blank line between each paragraph.",
+    "caption": "The full LinkedIn post text. Use actual newline characters to separate paragraphs. Put a blank line between each paragraph. Number the body sections with 1. 2. 3. etc.",
     "description": "A one-sentence summary for alt-text"
 }}

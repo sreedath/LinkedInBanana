@@ -12,9 +12,13 @@ from sse_starlette.sse import EventSourceResponse
 
 from paperbanana.api.jobs import Job, JobStore
 from paperbanana.api.schemas import (
+    ApiKeysRequest,
+    ApiKeysResponse,
     JobCreatedResponse,
     JobResultResponse,
     JobStatusResponse,
+    LinkedInPostRequest,
+    LinkedInScheduleRequest,
     PlaylistInfoResponse,
     PlaylistRequest,
 )
@@ -126,11 +130,44 @@ async def _run_pipeline(job: Job, settings: Settings):
         job.fail(str(e))
 
 
+@router.get("/api-keys", response_model=ApiKeysResponse)
+async def get_api_keys():
+    """Get stored API keys."""
+    from paperbanana.api.linkedin import get_stored_api_keys
+
+    keys = get_stored_api_keys()
+    return ApiKeysResponse(**keys)
+
+
+@router.put("/api-keys", response_model=ApiKeysResponse)
+async def put_api_keys(request: ApiKeysRequest):
+    """Save API keys to the backend."""
+    from paperbanana.api.linkedin import save_api_keys
+
+    keys = save_api_keys(request.google_api_key, request.youtube_api_key)
+    return ApiKeysResponse(**keys)
+
+
 @router.post("/playlist", response_model=JobCreatedResponse)
 async def create_playlist_job(request: PlaylistRequest):
     """Submit a playlist URL for LinkedIn image generation."""
     if not request.playlist_url:
         raise HTTPException(status_code=400, detail="playlist_url is required")
+
+    # Fall back to stored keys when request keys are empty
+    google_key = request.google_api_key
+    youtube_key = request.youtube_api_key
+    if not google_key or not youtube_key:
+        from paperbanana.api.linkedin import get_stored_api_keys
+
+        stored = get_stored_api_keys()
+        if not google_key:
+            google_key = stored["google_api_key"]
+        if not youtube_key:
+            youtube_key = stored["youtube_api_key"]
+
+    if not google_key or not youtube_key:
+        raise HTTPException(status_code=400, detail="API keys are required. Save them in settings or provide them in the request.")
 
     job = job_store.create(
         playlist_url=request.playlist_url,
@@ -140,8 +177,8 @@ async def create_playlist_job(request: PlaylistRequest):
     )
 
     settings = Settings(
-        google_api_key=request.google_api_key,
-        youtube_api_key=request.youtube_api_key,
+        google_api_key=google_key,
+        youtube_api_key=youtube_key,
     )
     asyncio.create_task(_run_pipeline(job, settings))
 
@@ -296,3 +333,97 @@ async def serve_image(job_id: str, filename: str):
         )
 
     return FileResponse(str(image_path), media_type="image/png")
+
+
+# ---------------------------------------------------------------------------
+# LinkedIn integration routes
+# ---------------------------------------------------------------------------
+
+
+@router.get("/linkedin/auth-url")
+async def linkedin_auth_url(client_id: str, redirect_uri: str):
+    """Generate a LinkedIn OAuth authorization URL."""
+    from paperbanana.api.linkedin import get_auth_url
+
+    url = get_auth_url(client_id, redirect_uri)
+    return {"url": url}
+
+
+@router.get("/linkedin/callback")
+async def linkedin_callback(code: str, state: str = ""):
+    """Handle the OAuth redirect from LinkedIn."""
+    import os
+
+    from fastapi.responses import HTMLResponse
+
+    from paperbanana.api.linkedin import exchange_code, is_email_allowed, persist_token
+
+    client_id = os.environ.get("LINKEDIN_CLIENT_ID", "")
+    client_secret = os.environ.get("LINKEDIN_CLIENT_SECRET", "")
+    # Reconstruct the redirect URI that was used in the auth request
+    redirect_uri = os.environ.get(
+        "LINKEDIN_REDIRECT_URI", "http://localhost:8080/api/v1/linkedin/callback"
+    )
+
+    if not client_id or not client_secret:
+        return HTMLResponse(
+            "<html><body><script>window.opener.postMessage({type:'linkedin-auth',error:'Missing LinkedIn credentials'},'*');window.close();</script></body></html>"
+        )
+
+    try:
+        token_data = await exchange_code(code, client_id, client_secret, redirect_uri)
+        email = token_data.get("email", "")
+        name = token_data.get("name", "")
+
+        # Check email whitelist before persisting
+        if not is_email_allowed(email):
+            logger.warning("LinkedIn auth rejected: email not allowed", email=email)
+            return HTMLResponse(
+                f"<html><body><p>Access denied. The email {email} is not authorized to post.</p>"
+                f"<script>window.opener.postMessage({{type:'linkedin-auth',error:'Email {email} is not authorized to post'}},'*');window.close();</script></body></html>"
+            )
+
+        # Email check passed — persist tokens
+        persist_token(token_data)
+
+        return HTMLResponse(
+            f"<html><body><p>Connected as {name}. You can close this window.</p>"
+            f"<script>window.opener.postMessage({{type:'linkedin-auth',success:true,name:'{name}'}},'*');window.close();</script></body></html>"
+        )
+    except Exception as e:
+        logger.error("LinkedIn OAuth failed", error=str(e))
+        return HTMLResponse(
+            f"<html><body><script>window.opener.postMessage({{type:'linkedin-auth',error:'{str(e)}'}},'*');window.close();</script></body></html>"
+        )
+
+
+@router.get("/linkedin/status")
+async def linkedin_status():
+    """Check if the user is authenticated with LinkedIn."""
+    from paperbanana.api.linkedin import get_auth_status
+
+    return get_auth_status()
+
+
+@router.post("/linkedin/post")
+async def linkedin_post(request: LinkedInPostRequest):
+    """Post to LinkedIn immediately."""
+    from paperbanana.api.linkedin import post_now
+
+    try:
+        result = await post_now(request.caption, request.image_path)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+    except Exception as e:
+        logger.error("LinkedIn post failed", error=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/linkedin/schedule")
+async def linkedin_schedule(request: LinkedInScheduleRequest):
+    """Schedule a LinkedIn post for later."""
+    from paperbanana.api.linkedin import schedule_post
+
+    result = schedule_post(request.caption, request.image_path, request.scheduled_at)
+    return result

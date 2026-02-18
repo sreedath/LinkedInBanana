@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { PlaylistUrlInput } from "@/components/PlaylistUrlInput";
 import { FormatSelector } from "@/components/FormatSelector";
-import { submitPlaylist, saveApiKeys, loadApiKeys } from "@/lib/api";
+import { submitPlaylist, saveApiKeys, loadApiKeys, fetchStoredApiKeys, saveApiKeysToBackend } from "@/lib/api";
+import { LinkedInConnect } from "@/components/LinkedInConnect";
 
 export default function HomePage() {
   const router = useRouter();
@@ -19,9 +20,19 @@ export default function HomePage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const keys = loadApiKeys();
-    setGoogleApiKey(keys.google_api_key);
-    setYoutubeApiKey(keys.youtube_api_key);
+    async function loadKeys() {
+      // Try backend first, fall back to localStorage
+      const backendKeys = await fetchStoredApiKeys();
+      if (backendKeys.google_api_key || backendKeys.youtube_api_key) {
+        setGoogleApiKey(backendKeys.google_api_key);
+        setYoutubeApiKey(backendKeys.youtube_api_key);
+      } else {
+        const keys = loadApiKeys();
+        setGoogleApiKey(keys.google_api_key);
+        setYoutubeApiKey(keys.youtube_api_key);
+      }
+    }
+    loadKeys();
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -31,6 +42,7 @@ export default function HomePage() {
     setLoading(true);
     setError("");
     saveApiKeys(googleApiKey, youtubeApiKey);
+    saveApiKeysToBackend(googleApiKey, youtubeApiKey);
 
     try {
       const response = await submitPlaylist({
@@ -124,11 +136,13 @@ export default function HomePage() {
                   />
                 </div>
                 <p className="text-xs text-gray-400">
-                  Keys are stored in your browser only and sent directly to Google APIs.
+                  Keys are saved to the server so you don&apos;t need to re-enter them each session.
                 </p>
               </div>
             )}
           </div>
+
+          <LinkedInConnect />
 
           <div className="space-y-2">
             <label

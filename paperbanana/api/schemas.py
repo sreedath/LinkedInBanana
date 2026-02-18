@@ -14,8 +14,22 @@ class PlaylistRequest(BaseModel):
     format: str = Field(default="landscape", description="Image format: landscape or square")
     generate_caption: bool = Field(default=True, description="Whether to generate a LinkedIn caption")
     custom_instructions: str = Field(default="", description="Custom instructions for image generation")
-    google_api_key: str = Field(description="Google Gemini API key")
-    youtube_api_key: str = Field(description="YouTube Data API key")
+    google_api_key: str = Field(default="", description="Google Gemini API key")
+    youtube_api_key: str = Field(default="", description="YouTube Data API key")
+
+
+class ApiKeysRequest(BaseModel):
+    """Request to save API keys."""
+
+    google_api_key: str = Field(default="", description="Google Gemini API key")
+    youtube_api_key: str = Field(default="", description="YouTube Data API key")
+
+
+class ApiKeysResponse(BaseModel):
+    """Response with stored API keys."""
+
+    google_api_key: str = ""
+    youtube_api_key: str = ""
 
 
 class JobCreatedResponse(BaseModel):
@@ -66,3 +80,18 @@ class JobStatusResponse(BaseModel):
     playlist_info: Optional[PlaylistInfoResponse] = None
     result: Optional[JobResultResponse] = None
     error: Optional[str] = None
+
+
+class LinkedInPostRequest(BaseModel):
+    """Request to post to LinkedIn immediately."""
+
+    caption: str = Field(description="The post text")
+    image_path: Optional[str] = Field(default=None, description="Path to image file to attach")
+
+
+class LinkedInScheduleRequest(BaseModel):
+    """Request to schedule a LinkedIn post."""
+
+    caption: str = Field(description="The post text")
+    image_path: Optional[str] = Field(default=None, description="Path to image file to attach")
+    scheduled_at: str = Field(description="ISO 8601 datetime for when to publish")

@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { ProgressTracker } from "@/components/ProgressTracker";
 import { ImageResult } from "@/components/ImageResult";
 import { CaptionDisplay } from "@/components/CaptionDisplay";
+import { LinkedInPostActions } from "@/components/LinkedInPostActions";
 import { API_BASE } from "@/lib/api";
 import type { JobResult, PlaylistInfo } from "@/lib/api";
 
@@ -164,6 +165,13 @@ function GenerateContent() {
             <CaptionDisplay
               caption={result.caption}
               hashtags={result.hashtags}
+            />
+          )}
+
+          {result.caption && (
+            <LinkedInPostActions
+              caption={result.caption}
+              imagePath={result.image_url}
             />
           )}
 

@@ -48,6 +48,27 @@ export function clearApiKeys(): void {
   localStorage.removeItem(API_KEYS_STORAGE_KEY);
 }
 
+export async function fetchStoredApiKeys(): Promise<{ google_api_key: string; youtube_api_key: string }> {
+  try {
+    const res = await fetch(`${API_BASE}/api-keys`);
+    if (!res.ok) throw new Error("Failed to fetch API keys");
+    return res.json();
+  } catch {
+    return { google_api_key: "", youtube_api_key: "" };
+  }
+}
+
+export async function saveApiKeysToBackend(
+  googleApiKey: string,
+  youtubeApiKey: string
+): Promise<void> {
+  await fetch(`${API_BASE}/api-keys`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ google_api_key: googleApiKey, youtube_api_key: youtubeApiKey }),
+  });
+}
+
 export interface JobCreatedResponse {
   job_id: string;
   status: string;
@@ -113,6 +134,63 @@ export async function getJobStatus(jobId: string): Promise<JobStatus> {
   const res = await fetch(`${API_BASE}/jobs/${jobId}`);
   if (!res.ok) {
     throw new Error("Failed to get job status");
+  }
+  return res.json();
+}
+
+// ---------------------------------------------------------------------------
+// LinkedIn API
+// ---------------------------------------------------------------------------
+
+export async function getLinkedInAuthUrl(
+  clientId: string,
+  redirectUri: string
+): Promise<{ url: string }> {
+  const params = new URLSearchParams({ client_id: clientId, redirect_uri: redirectUri });
+  const res = await fetch(`${API_BASE}/linkedin/auth-url?${params}`);
+  if (!res.ok) throw new Error("Failed to get auth URL");
+  return res.json();
+}
+
+export async function getLinkedInStatus(): Promise<{
+  authenticated: boolean;
+  name?: string;
+  linkedin_id?: string;
+}> {
+  const res = await fetch(`${API_BASE}/linkedin/status`);
+  if (!res.ok) throw new Error("Failed to check LinkedIn status");
+  return res.json();
+}
+
+export async function postToLinkedIn(
+  caption: string,
+  imagePath?: string
+): Promise<{ post_id: string; status: string }> {
+  const res = await fetch(`${API_BASE}/linkedin/post`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ caption, image_path: imagePath }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Post failed" }));
+    throw new Error(err.detail || "Failed to post to LinkedIn");
+  }
+  return res.json();
+}
+
+export async function scheduleLinkedInPost(
+  caption: string,
+  imagePath?: string,
+  scheduledAt?: string
+): Promise<{ id: string; scheduled_at: string; status: string }> {
+  const res = await fetch(`${API_BASE}/linkedin/schedule`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ caption, image_path: imagePath, scheduled_at: scheduledAt }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Schedule failed" }));
+    throw new Error(err.detail || "Failed to schedule post");
   }
   return res.json();
 }
