@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BACKEND_URL } from "@/lib/api";
+import { BACKEND_URL, getAuthToken } from "@/lib/api";
 import type { IterationImage } from "@/lib/api";
 
 interface Props {
@@ -11,7 +11,11 @@ interface Props {
 }
 
 function resolveUrl(url: string): string {
-  return url.startsWith("http") ? url : `${BACKEND_URL}${url}`;
+  const base = url.startsWith("http") ? url : `${BACKEND_URL}${url}`;
+  const token = getAuthToken();
+  if (!token) return base;
+  const sep = base.includes("?") ? "&" : "?";
+  return `${base}${sep}token=${encodeURIComponent(token)}`;
 }
 
 export function ImageResult({ imageUrl, playlistTitle, iterationImages = [] }: Props) {
@@ -37,7 +41,10 @@ export function ImageResult({ imageUrl, playlistTitle, iterationImages = [] }: P
 
   async function handleDownload(url: string) {
     try {
-      const res = await fetch(url);
+      const token = getAuthToken();
+      const res = await fetch(url, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const blob = await res.blob();
       const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");

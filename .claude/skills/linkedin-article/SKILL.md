@@ -156,6 +156,8 @@ Do not use generic transitions like "Next" or "Moving on" or "Additionally."
 - Never write paragraphs longer than 6 sentences.
 - Never use filler phrases like "In today's fast-paced world" or "As we all know."
 - Never use contractions or em dashes (enforced by writing-preferences skill).
+- Never use these banned words: "demystifying", "delve", "dive deep", "deep dive", "unleash", "game-changer", "cutting-edge", "revolutionize", "paradigm shift", "comprehensive guide".
+- Never sound like AI. Avoid the polished, generically enthusiastic tone that LLM outputs tend to have.
 
 ---
 

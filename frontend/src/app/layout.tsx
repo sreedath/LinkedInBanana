@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
+import { AuthGuard } from "@/components/AuthGuard";
 
 export const metadata: Metadata = {
   title: "LinkedInBanana by Vizuara",
@@ -33,7 +34,9 @@ export default function RootLayout({
               </span>
             </div>
           </header>
-          <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
+          <main className="mx-auto max-w-5xl px-4 py-8">
+            <AuthGuard>{children}</AuthGuard>
+          </main>
         </Providers>
       </body>
     </html>

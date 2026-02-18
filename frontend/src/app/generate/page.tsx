@@ -5,8 +5,9 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { ProgressTracker } from "@/components/ProgressTracker";
 import { ImageResult } from "@/components/ImageResult";
 import { CaptionDisplay } from "@/components/CaptionDisplay";
-import { LinkedInPostActions } from "@/components/LinkedInPostActions";
-import { API_BASE } from "@/lib/api";
+// LinkedIn posting temporarily disabled — waiting for Community Management API approval
+// import { LinkedInPostActions } from "@/components/LinkedInPostActions";
+import { API_BASE, getAuthToken } from "@/lib/api";
 import type { JobResult, PlaylistInfo } from "@/lib/api";
 
 function formatDuration(totalSeconds: number): string {
@@ -36,7 +37,10 @@ function GenerateContent() {
     async function poll() {
       while (!stopped) {
         try {
-          const status = await (await fetch(`${API_BASE}/jobs/${jobId}`)).json();
+          const token = getAuthToken();
+          const status = await (await fetch(`${API_BASE}/jobs/${jobId}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          })).json();
 
           if (stopped) break;
 
@@ -168,12 +172,13 @@ function GenerateContent() {
             />
           )}
 
-          {result.caption && (
+          {/* LinkedIn posting temporarily disabled — waiting for Community Management API approval */}
+          {/* {result.caption && (
             <LinkedInPostActions
               caption={result.caption}
               imagePath={result.image_url}
             />
-          )}
+          )} */}
 
           <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-600">
             <p>

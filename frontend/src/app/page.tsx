@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { PlaylistUrlInput } from "@/components/PlaylistUrlInput";
 import { FormatSelector } from "@/components/FormatSelector";
 import { submitPlaylist, saveApiKeys, loadApiKeys, fetchStoredApiKeys, saveApiKeysToBackend } from "@/lib/api";
-import { LinkedInConnect } from "@/components/LinkedInConnect";
+// LinkedIn Connect temporarily disabled — waiting for Community Management API approval
+// import { LinkedInConnect } from "@/components/LinkedInConnect";
 
 export default function HomePage() {
   const router = useRouter();
@@ -142,7 +143,8 @@ export default function HomePage() {
             )}
           </div>
 
-          <LinkedInConnect />
+          {/* LinkedIn Connect temporarily disabled — waiting for Community Management API approval */}
+          {/* <LinkedInConnect /> */}
 
           <div className="space-y-2">
             <label

@@ -7,19 +7,33 @@ interface Props {
   hashtags?: string[];
 }
 
+/** Recursively extract all text from a value that may be a nested object or array. */
+function extractText(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) {
+    return value.map(extractText).filter(Boolean).join("\n\n");
+  }
+  if (typeof value === "object" && value !== null) {
+    const obj = value as Record<string, unknown>;
+    // Try common keys first
+    for (const key of ["caption", "text", "content", "body"]) {
+      if (key in obj) return extractText(obj[key]);
+    }
+    // Concatenate all values
+    return Object.values(obj).map(extractText).filter(Boolean).join("\n\n");
+  }
+  return value ? String(value) : "";
+}
+
 /** If the string looks like raw JSON, try to extract the caption text from it. */
 function cleanCaption(raw: string): string {
   const trimmed = raw.trim();
-  if (!trimmed.startsWith("{")) return trimmed;
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return trimmed;
 
   try {
     const parsed = JSON.parse(trimmed);
-    if (typeof parsed === "object" && parsed !== null) {
-      // Try common keys
-      for (const key of ["caption", "text", "content", "body"]) {
-        if (typeof parsed[key] === "string") return parsed[key];
-      }
-    }
+    const extracted = extractText(parsed);
+    if (extracted) return extracted;
   } catch {
     // Not valid JSON — return as-is
   }

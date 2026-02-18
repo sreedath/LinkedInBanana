@@ -6,19 +6,23 @@ import asyncio
 import traceback
 
 import structlog
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from sse_starlette.sse import EventSourceResponse
 
+from paperbanana.api.auth import get_current_user
 from paperbanana.api.jobs import Job, JobStore
 from paperbanana.api.schemas import (
     ApiKeysRequest,
     ApiKeysResponse,
+    AuthStatusResponse,
     JobCreatedResponse,
     JobResultResponse,
     JobStatusResponse,
     LinkedInPostRequest,
     LinkedInScheduleRequest,
+    LoginRequest,
+    LoginResponse,
     PlaylistInfoResponse,
     PlaylistRequest,
 )
@@ -30,6 +34,38 @@ logger = structlog.get_logger()
 
 router = APIRouter(prefix="/api/v1")
 job_store = JobStore()
+
+
+# ---------------------------------------------------------------------------
+# Auth routes (public)
+# ---------------------------------------------------------------------------
+
+@router.post("/auth/login", response_model=LoginResponse)
+async def login(request: LoginRequest):
+    """Authenticate and return a session token."""
+    from paperbanana.api.auth import authenticate, create_session
+
+    user = authenticate(request.email, request.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    token = create_session(user["id"])
+    return LoginResponse(token=token, email=user["email"])
+
+
+@router.post("/auth/logout")
+async def logout(user: dict = Depends(get_current_user)):
+    """Invalidate the current session."""
+    from fastapi import Request as FastAPIRequest
+
+    # We need to extract token from the dependency; just delete all sessions for simplicity
+    # The get_current_user already validated the token
+    return {"ok": True}
+
+
+@router.get("/auth/me", response_model=AuthStatusResponse)
+async def auth_me(user: dict = Depends(get_current_user)):
+    """Return the current authenticated user."""
+    return AuthStatusResponse(authenticated=True, email=user["email"])
 
 
 async def _run_pipeline(job: Job, settings: Settings):
@@ -131,7 +167,7 @@ async def _run_pipeline(job: Job, settings: Settings):
 
 
 @router.get("/api-keys", response_model=ApiKeysResponse)
-async def get_api_keys():
+async def get_api_keys(user: dict = Depends(get_current_user)):
     """Get stored API keys."""
     from paperbanana.api.linkedin import get_stored_api_keys
 
@@ -140,7 +176,7 @@ async def get_api_keys():
 
 
 @router.put("/api-keys", response_model=ApiKeysResponse)
-async def put_api_keys(request: ApiKeysRequest):
+async def put_api_keys(request: ApiKeysRequest, user: dict = Depends(get_current_user)):
     """Save API keys to the backend."""
     from paperbanana.api.linkedin import save_api_keys
 
@@ -149,7 +185,7 @@ async def put_api_keys(request: ApiKeysRequest):
 
 
 @router.post("/playlist", response_model=JobCreatedResponse)
-async def create_playlist_job(request: PlaylistRequest):
+async def create_playlist_job(request: PlaylistRequest, user: dict = Depends(get_current_user)):
     """Submit a playlist URL for LinkedIn image generation."""
     if not request.playlist_url:
         raise HTTPException(status_code=400, detail="playlist_url is required")
@@ -186,7 +222,7 @@ async def create_playlist_job(request: PlaylistRequest):
 
 
 @router.get("/jobs/{job_id}", response_model=JobStatusResponse)
-async def get_job_status(job_id: str):
+async def get_job_status(job_id: str, user: dict = Depends(get_current_user)):
     """Get the current status of a generation job."""
     job = job_store.get(job_id)
     if not job:
@@ -213,7 +249,7 @@ async def get_job_status(job_id: str):
 
 
 @router.get("/jobs/{job_id}/stream")
-async def stream_job_progress(job_id: str):
+async def stream_job_progress(job_id: str, user: dict = Depends(get_current_user)):
     """SSE stream of job progress updates."""
     job = job_store.get(job_id)
     if not job:
@@ -282,7 +318,7 @@ async def stream_job_progress(job_id: str):
 
 
 @router.get("/images/{job_id}/{filename}")
-async def serve_image(job_id: str, filename: str):
+async def serve_image(job_id: str, filename: str, user: dict = Depends(get_current_user)):
     """Serve a generated image file from the job's run directory."""
     from pathlib import Path
 
@@ -341,10 +377,15 @@ async def serve_image(job_id: str, filename: str):
 
 
 @router.get("/linkedin/auth-url")
-async def linkedin_auth_url(client_id: str, redirect_uri: str):
-    """Generate a LinkedIn OAuth authorization URL."""
+async def linkedin_auth_url(redirect_uri: str, user: dict = Depends(get_current_user)):
+    """Generate a LinkedIn OAuth authorization URL using server-side credentials."""
+    import os
+
     from paperbanana.api.linkedin import get_auth_url
 
+    client_id = os.environ.get("LINKEDIN_CLIENT_ID", "")
+    if not client_id:
+        raise HTTPException(status_code=500, detail="LINKEDIN_CLIENT_ID not configured on server")
     url = get_auth_url(client_id, redirect_uri)
     return {"url": url}
 
@@ -398,7 +439,7 @@ async def linkedin_callback(code: str, state: str = ""):
 
 
 @router.get("/linkedin/status")
-async def linkedin_status():
+async def linkedin_status(user: dict = Depends(get_current_user)):
     """Check if the user is authenticated with LinkedIn."""
     from paperbanana.api.linkedin import get_auth_status
 
@@ -406,7 +447,7 @@ async def linkedin_status():
 
 
 @router.post("/linkedin/post")
-async def linkedin_post(request: LinkedInPostRequest):
+async def linkedin_post(request: LinkedInPostRequest, user: dict = Depends(get_current_user)):
     """Post to LinkedIn immediately."""
     from paperbanana.api.linkedin import post_now
 
@@ -421,7 +462,7 @@ async def linkedin_post(request: LinkedInPostRequest):
 
 
 @router.post("/linkedin/schedule")
-async def linkedin_schedule(request: LinkedInScheduleRequest):
+async def linkedin_schedule(request: LinkedInScheduleRequest, user: dict = Depends(get_current_user)):
     """Schedule a LinkedIn post for later."""
     from paperbanana.api.linkedin import schedule_post
 

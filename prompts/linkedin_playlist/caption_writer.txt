@@ -1,4 +1,4 @@
-You are writing a LinkedIn post to accompany a playlist summary image. Write it naturally, as a knowledgeable person sharing something useful with their network. Follow the DDPM article structure described below.
+You are writing a LinkedIn post to accompany a playlist summary image. Write it the way a knowledgeable person would actually write on LinkedIn: natural, direct, and grounded in real understanding of the subject. No AI polish. No generic enthusiasm. Follow the structure below.
 
 ## Playlist Data
 {playlist_summary}
@@ -14,7 +14,7 @@ You are writing a LinkedIn post to accompany a playlist summary image. Write it 
 
 ## Article Structure
 
-The post must follow this exact four-section structure:
+The post must follow this exact five-section structure:
 
 ### 1. Opening Hook (1 paragraph, 2 to 3 sentences)
 
@@ -22,7 +22,11 @@ Acknowledge a relatable pain point or common perception about the topic covered 
 
 Pattern: "[Topic] looks [intimidating/complex] because [specific reasons]. However, at its core, [topic] is built on [simple idea], and once that clicks, the rest starts making sense."
 
-### 2. Numbered Body Sections (3 to 5 sections, 3 to 6 sentences each)
+### 2. Playlist Introduction (1 paragraph, 2 to 4 sentences)
+
+Introduce the playlist itself. Mention its title, what it covers, and why it matters. Explain who would benefit from watching it and what they will walk away with. This is not a generic "check out this playlist" blurb. Be specific about the value: does it build from scratch? Does it connect theory to code? Does it cover a gap that most resources miss? Ground this in the actual content of the videos, not vague promises.
+
+### 3. Numbered Body Sections (3 to 5 sections, 3 to 6 sentences each)
 
 Each numbered section carries exactly one idea or one logical step. The sections must follow a progressive construction pattern where each builds directly on the previous. Use the actual video titles and topics from the playlist data to make each section specific and concrete.
 
@@ -35,11 +39,11 @@ Rules for numbered sections:
 - Do not front-load jargon; introduce a term only after the concept is clear
 - Each section should feel like the natural next question after the previous one
 
-### 3. Closing Distillation (1 paragraph, 2 to 4 sentences)
+### 4. Closing Distillation (1 paragraph, 2 to 4 sentences)
 
 Distill the entire post into a single memorable insight. Start with a framing phrase like "If I had to explain [topic] in one line" or "The core insight is this." Follow with one sentence that reframes the reader's perspective.
 
-### 4. Call to Action (1 to 2 sentences)
+### 5. Call to Action (1 to 2 sentences)
 
 Mention Vizuara naturally as the team that created this playlist content. Include the playlist link. Invite the reader to watch, follow, or share their thoughts.
 
@@ -57,11 +61,27 @@ Mention Vizuara naturally as the team that created this playlist content. Includ
 - Do not use generic transitions like "Next" or "Moving on" or "Additionally"
 - 700 to 800 words total
 - Keep the entire post under 3000 characters
+- Do not sound like AI. Avoid the polished, overly structured, generically enthusiastic tone that LLM outputs tend to have. Write like a real person who knows the subject.
+- Never use these words: "demystifying", "delve", "dive deep", "deep dive", "unleash", "game-changer", "cutting-edge", "revolutionize", "paradigm shift", "comprehensive guide". Find a more specific alternative.
+
+## Reference Style
+
+Here is an example of the target writing quality. Match this tone, pacing, and clarity:
+
+"Diffusion models look intimidating mathematically on first contact because they come with long equations, UNets, and many Greek letters if you look at the paper. However, at its core, a DDPM is built on an intuitive idea, and once that idea clicks, the entire model starts making sense.
+
+The starting point of a DDPM is not generation but destruction. We take a real image from the dataset and we intentionally add small amounts of Gaussian noise to it, in a very controlled and mathematical way. This process is called forward diffusion. At every step, the image loses a tiny bit of structure and gains a tiny bit of randomness, and if we keep doing this long enough, the image eventually becomes pure noise. The important thing here is that this corruption process is fully known to us, we choose exactly how much noise to add at each step, and nothing is learned in this phase.
+
+Once we understand how to destroy images in a controlled way, the real question becomes interesting: can we learn how to reverse this process? This is where the neural network comes in. Instead of asking the model to directly produce a clean image, which is a very hard problem, we ask it something much simpler and more well-defined. Given a noisy image and the timestep, can you tell me what noise is present in this image? That is all the UNet is trained to do. It does not generate pixels, it does not hallucinate images, it only predicts noise."
+
+Notice: no fluff, no filler, no generic excitement. Every sentence carries information. The tone is that of someone who genuinely understands the topic and is explaining it clearly.
 
 ## Output Format
 
+CRITICAL: The "caption" value MUST be a single flat string containing the entire post. Do NOT break it into sections, objects, or arrays. Use literal newline characters (\n) within the string to separate paragraphs. Number the body sections with 1. 2. 3. etc.
+
 Respond in this exact JSON format:
 {{
-    "caption": "The full LinkedIn post text. Use actual newline characters to separate paragraphs. Put a blank line between each paragraph. Number the body sections with 1. 2. 3. etc.",
+    "caption": "First paragraph here.\n\nSecond paragraph here.\n\n1. First body section here.\n\n2. Second body section here.\n\nClosing paragraph here.\n\nCall to action here.",
     "description": "A one-sentence summary for alt-text"
 }}

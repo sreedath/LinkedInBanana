@@ -162,6 +162,40 @@ async def exchange_code(
     name = profile.get("name", "")
     email = profile.get("email", "")
 
+    # Fetch organizations the user administers
+    org_id = ""
+    org_name = ""
+    try:
+        async with httpx.AsyncClient() as client:
+            orgs_resp = await client.get(
+                "https://api.linkedin.com/rest/organizationAcls?q=roleAssignee&role=ADMINISTRATOR",
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "LinkedIn-Version": "202401",
+                },
+            )
+            if orgs_resp.status_code == 200:
+                orgs_data = orgs_resp.json()
+                elements = orgs_data.get("elements", [])
+                if elements:
+                    # Use the first org; extract ID from URN like "urn:li:organization:12345"
+                    org_urn = elements[0].get("organization", "")
+                    if org_urn:
+                        org_id = org_urn.split(":")[-1]
+                        # Fetch org name
+                        org_detail_resp = await client.get(
+                            f"https://api.linkedin.com/rest/organizations/{org_id}",
+                            headers={
+                                "Authorization": f"Bearer {access_token}",
+                                "LinkedIn-Version": "202401",
+                            },
+                        )
+                        if org_detail_resp.status_code == 200:
+                            org_name = org_detail_resp.json().get("localizedName", "")
+                logger.info("Fetched org info", org_id=org_id, org_name=org_name)
+    except Exception as e:
+        logger.warning("Could not fetch organizations", error=str(e))
+
     return {
         "access_token": access_token,
         "expires_in": expires_in,
@@ -169,6 +203,8 @@ async def exchange_code(
         "linkedin_id": linkedin_id,
         "name": name,
         "email": email,
+        "org_id": org_id,
+        "org_name": org_name,
     }
 
 
@@ -177,17 +213,18 @@ def persist_token(token_data: dict) -> None:
     now = time.time()
     conn = _get_db()
 
-    # Add email column if it doesn't exist yet
-    try:
-        conn.execute("ALTER TABLE oauth_tokens ADD COLUMN email TEXT DEFAULT ''")
-        conn.commit()
-    except sqlite3.OperationalError:
-        pass  # Column already exists
+    # Add columns if they don't exist yet
+    for col, default in [("email", "''"), ("org_id", "''"), ("org_name", "''")]:
+        try:
+            conn.execute(f"ALTER TABLE oauth_tokens ADD COLUMN {col} TEXT DEFAULT {default}")
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass  # Column already exists
 
     conn.execute(
         """INSERT OR REPLACE INTO oauth_tokens
-           (id, access_token, expires_at, refresh_token, linkedin_id, name, email, updated_at)
-           VALUES (1, ?, ?, ?, ?, ?, ?, ?)""",
+           (id, access_token, expires_at, refresh_token, linkedin_id, name, email, org_id, org_name, updated_at)
+           VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             token_data["access_token"],
             now + token_data["expires_in"],
@@ -195,6 +232,8 @@ def persist_token(token_data: dict) -> None:
             token_data["linkedin_id"],
             token_data["name"],
             token_data.get("email", ""),
+            token_data.get("org_id", ""),
+            token_data.get("org_name", ""),
             now,
         ),
     )
@@ -211,18 +250,32 @@ def get_stored_token() -> Optional[dict]:
         return None
     if row["expires_at"] < time.time():
         return None
-    return {
+    result = {
         "access_token": row["access_token"],
         "linkedin_id": row["linkedin_id"],
         "name": row["name"],
     }
+    # Include org info if columns exist
+    try:
+        result["org_id"] = row["org_id"] or ""
+        result["org_name"] = row["org_name"] or ""
+    except (IndexError, KeyError):
+        result["org_id"] = ""
+        result["org_name"] = ""
+    return result
 
 
 def get_auth_status() -> dict:
     """Return current authentication status."""
     token = get_stored_token()
     if token:
-        return {"authenticated": True, "name": token["name"], "linkedin_id": token["linkedin_id"]}
+        return {
+            "authenticated": True,
+            "name": token["name"],
+            "linkedin_id": token["linkedin_id"],
+            "org_id": token.get("org_id", ""),
+            "org_name": token.get("org_name", ""),
+        }
     return {"authenticated": False}
 
 
@@ -230,9 +283,9 @@ def get_auth_status() -> dict:
 # Posting
 # ---------------------------------------------------------------------------
 
-async def upload_image_to_linkedin(access_token: str, linkedin_id: str, image_path: str) -> str:
+async def upload_image_to_linkedin(access_token: str, linkedin_id: str, image_path: str, org_id: str = "") -> str:
     """Upload an image to LinkedIn and return the image URN."""
-    owner_urn = f"urn:li:person:{linkedin_id}"
+    owner_urn = f"urn:li:organization:{org_id}" if org_id else f"urn:li:person:{linkedin_id}"
 
     async with httpx.AsyncClient() as client:
         # Step 1: Initialize upload
@@ -275,9 +328,10 @@ async def create_linkedin_post(
     linkedin_id: str,
     text: str,
     image_urn: str | None = None,
+    org_id: str = "",
 ) -> str:
     """Create a LinkedIn post. Returns the post URN."""
-    owner_urn = f"urn:li:person:{linkedin_id}"
+    owner_urn = f"urn:li:organization:{org_id}" if org_id else f"urn:li:person:{linkedin_id}"
 
     body: dict = {
         "author": owner_urn,
@@ -314,19 +368,25 @@ async def create_linkedin_post(
 
 
 async def post_now(caption: str, image_path: str | None = None) -> dict:
-    """Post immediately to LinkedIn using stored credentials."""
+    """Post immediately to LinkedIn using stored credentials.
+
+    Posts to the organization page if org_id is stored, otherwise to personal profile.
+    """
     token = get_stored_token()
     if not token:
         raise ValueError("Not authenticated with LinkedIn")
 
     access_token = token["access_token"]
     linkedin_id = token["linkedin_id"]
+    org_id = token.get("org_id", "")
 
     image_urn = None
     if image_path and Path(image_path).exists():
-        image_urn = await upload_image_to_linkedin(access_token, linkedin_id, image_path)
+        image_urn = await upload_image_to_linkedin(access_token, linkedin_id, image_path, org_id)
 
-    post_id = await create_linkedin_post(access_token, linkedin_id, caption, image_urn)
+    post_id = await create_linkedin_post(access_token, linkedin_id, caption, image_urn, org_id)
+    target = f"organization {org_id}" if org_id else "personal profile"
+    logger.info("Posted to LinkedIn", target=target, post_id=post_id)
     return {"post_id": post_id, "status": "published"}
 
 

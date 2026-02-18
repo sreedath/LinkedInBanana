@@ -115,11 +115,9 @@ class CaptionWriterAgent(BaseAgent):
             for key in ("caption", "text", "content", "body"):
                 if key in value:
                     return self._extract_text(value[key])
-            # Fall back to first string value
-            for v in value.values():
-                result = self._extract_text(v)
-                if result:
-                    return result
+            # Concatenate ALL values to avoid losing sections
+            parts = [self._extract_text(v) for v in value.values()]
+            return "\n\n".join(p for p in parts if p)
         if isinstance(value, list):
             parts = [self._extract_text(item) for item in value]
             return "\n\n".join(p for p in parts if p)

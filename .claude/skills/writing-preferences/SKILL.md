@@ -73,6 +73,24 @@ Do not use emojis anywhere in the output. Not in headings, not in calls to actio
 - Avoid corporate buzzwords and hollow phrases like "leverage", "synergy", "game-changer", "unlock the power of".
 - Prefer active voice over passive voice.
 - Use "I" when expressing personal opinions or experiences. Use "we" when referring to a shared process or community.
+- Do not sound like AI. Avoid the polished, overly structured, generically enthusiastic tone that LLM outputs tend to have. Write like a real person who has actually watched the content and has an opinion about it.
+
+### Banned Words and Phrases
+
+Never use the following words or phrases. Find a better, more specific alternative every time.
+
+| Banned              | Why                                                    |
+| ------------------- | ------------------------------------------------------ |
+| demystifying        | Overused, sounds like every generic tech blog headline  |
+| delve               | Classic AI tell                                         |
+| dive deep           | Vague and overused                                      |
+| unleash             | Corporate hype language                                 |
+| game-changer        | Meaningless buzzword                                    |
+| cutting-edge        | Vague, everything claims to be cutting-edge             |
+| revolutionize       | Almost never accurate                                   |
+| paradigm shift      | Corporate jargon                                        |
+| deep dive           | Same as "dive deep"                                     |
+| comprehensive guide | Sounds like SEO spam                                    |
 
 ### Sentence Quality
 

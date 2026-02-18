@@ -7,6 +7,10 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+load_dotenv()  # Load .env before anything else
+
 import structlog
 import uvicorn
 from fastapi import FastAPI, Request
@@ -38,7 +42,10 @@ async def _scheduler_loop():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Start and stop the background scheduler."""
+    """Start and stop the background scheduler, seed default user."""
+    from paperbanana.api.auth import seed_default_user
+
+    seed_default_user()
     task = asyncio.create_task(_scheduler_loop())
     yield
     task.cancel()
@@ -85,6 +92,14 @@ def create_app() -> FastAPI:
         next_dir = frontend_dir / "_next"
         if next_dir.exists():
             app.mount("/_next", StaticFiles(directory=str(next_dir)), name="next-static")
+
+        @app.get("/login{path:path}")
+        async def serve_login(request: Request):
+            """Serve the login page for SPA routing."""
+            page = frontend_dir / "login" / "index.html"
+            if page.exists():
+                return FileResponse(str(page), media_type="text/html")
+            return FileResponse(str(frontend_dir / "index.html"), media_type="text/html")
 
         @app.get("/generate{path:path}")
         async def serve_generate(request: Request):

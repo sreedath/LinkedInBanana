@@ -10,6 +10,70 @@ function getBackendUrl(): string {
 export const BACKEND_URL = getBackendUrl();
 export const API_BASE = `${BACKEND_URL}/api/v1`;
 
+// ---------------------------------------------------------------------------
+// Auth token management
+// ---------------------------------------------------------------------------
+
+const AUTH_TOKEN_KEY = "linkedinbanana_auth_token";
+
+export function getAuthToken(): string {
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem(AUTH_TOKEN_KEY) || "";
+}
+
+export function setAuthToken(token: string): void {
+  localStorage.setItem(AUTH_TOKEN_KEY, token);
+}
+
+export function clearAuthToken(): void {
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+}
+
+function authHeaders(): Record<string, string> {
+  const token = getAuthToken();
+  if (!token) return {};
+  return { Authorization: `Bearer ${token}` };
+}
+
+// ---------------------------------------------------------------------------
+// Auth API
+// ---------------------------------------------------------------------------
+
+export async function login(
+  email: string,
+  password: string
+): Promise<{ token: string; email: string }> {
+  const res = await fetch(`${API_BASE}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Login failed" }));
+    throw new Error(err.detail || "Invalid email or password");
+  }
+  const data = await res.json();
+  setAuthToken(data.token);
+  return data;
+}
+
+export async function checkAuth(): Promise<{ authenticated: boolean; email: string }> {
+  const token = getAuthToken();
+  if (!token) return { authenticated: false, email: "" };
+  try {
+    const res = await fetch(`${API_BASE}/auth/me`, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) {
+      clearAuthToken();
+      return { authenticated: false, email: "" };
+    }
+    return res.json();
+  } catch {
+    return { authenticated: false, email: "" };
+  }
+}
+
 export interface PlaylistRequest {
   playlist_url: string;
   format: "landscape" | "square";
@@ -50,7 +114,9 @@ export function clearApiKeys(): void {
 
 export async function fetchStoredApiKeys(): Promise<{ google_api_key: string; youtube_api_key: string }> {
   try {
-    const res = await fetch(`${API_BASE}/api-keys`);
+    const res = await fetch(`${API_BASE}/api-keys`, {
+      headers: authHeaders(),
+    });
     if (!res.ok) throw new Error("Failed to fetch API keys");
     return res.json();
   } catch {
@@ -64,7 +130,7 @@ export async function saveApiKeysToBackend(
 ): Promise<void> {
   await fetch(`${API_BASE}/api-keys`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ google_api_key: googleApiKey, youtube_api_key: youtubeApiKey }),
   });
 }
@@ -120,7 +186,7 @@ export async function submitPlaylist(
 ): Promise<JobCreatedResponse> {
   const res = await fetch(`${API_BASE}/playlist`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(request),
   });
   if (!res.ok) {
@@ -131,7 +197,9 @@ export async function submitPlaylist(
 }
 
 export async function getJobStatus(jobId: string): Promise<JobStatus> {
-  const res = await fetch(`${API_BASE}/jobs/${jobId}`);
+  const res = await fetch(`${API_BASE}/jobs/${jobId}`, {
+    headers: authHeaders(),
+  });
   if (!res.ok) {
     throw new Error("Failed to get job status");
   }
@@ -143,11 +211,12 @@ export async function getJobStatus(jobId: string): Promise<JobStatus> {
 // ---------------------------------------------------------------------------
 
 export async function getLinkedInAuthUrl(
-  clientId: string,
   redirectUri: string
 ): Promise<{ url: string }> {
-  const params = new URLSearchParams({ client_id: clientId, redirect_uri: redirectUri });
-  const res = await fetch(`${API_BASE}/linkedin/auth-url?${params}`);
+  const params = new URLSearchParams({ redirect_uri: redirectUri });
+  const res = await fetch(`${API_BASE}/linkedin/auth-url?${params}`, {
+    headers: authHeaders(),
+  });
   if (!res.ok) throw new Error("Failed to get auth URL");
   return res.json();
 }
@@ -156,8 +225,12 @@ export async function getLinkedInStatus(): Promise<{
   authenticated: boolean;
   name?: string;
   linkedin_id?: string;
+  org_id?: string;
+  org_name?: string;
 }> {
-  const res = await fetch(`${API_BASE}/linkedin/status`);
+  const res = await fetch(`${API_BASE}/linkedin/status`, {
+    headers: authHeaders(),
+  });
   if (!res.ok) throw new Error("Failed to check LinkedIn status");
   return res.json();
 }
@@ -168,7 +241,7 @@ export async function postToLinkedIn(
 ): Promise<{ post_id: string; status: string }> {
   const res = await fetch(`${API_BASE}/linkedin/post`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ caption, image_path: imagePath }),
   });
   if (!res.ok) {
@@ -185,7 +258,7 @@ export async function scheduleLinkedInPost(
 ): Promise<{ id: string; scheduled_at: string; status: string }> {
   const res = await fetch(`${API_BASE}/linkedin/schedule`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ caption, image_path: imagePath, scheduled_at: scheduledAt }),
   });
   if (!res.ok) {
@@ -206,7 +279,9 @@ export function createJobStream(
   onComplete: (result: JobResult) => void,
   onError: (error: string) => void
 ): EventSource {
-  const es = new EventSource(`${API_BASE}/jobs/${jobId}/stream`);
+  const token = getAuthToken();
+  const tokenParam = token ? `?token=${encodeURIComponent(token)}` : "";
+  const es = new EventSource(`${API_BASE}/jobs/${jobId}/stream${tokenParam}`);
 
   es.addEventListener("status", (e) => {
     const data = JSON.parse(e.data);

@@ -95,3 +95,24 @@ class LinkedInScheduleRequest(BaseModel):
     caption: str = Field(description="The post text")
     image_path: Optional[str] = Field(default=None, description="Path to image file to attach")
     scheduled_at: str = Field(description="ISO 8601 datetime for when to publish")
+
+
+class LoginRequest(BaseModel):
+    """Login request."""
+
+    email: str
+    password: str
+
+
+class LoginResponse(BaseModel):
+    """Login response with session token."""
+
+    token: str
+    email: str
+
+
+class AuthStatusResponse(BaseModel):
+    """Current auth status."""
+
+    authenticated: bool
+    email: str = ""
