@@ -166,6 +166,17 @@ class CaptionWriterAgent(BaseAgent):
         if len(caption) >= 2 and caption[0] == '"' and caption[-1] == '"':
             caption = caption[1:-1]
 
+        # Final safety net: if caption still looks like JSON, extract text from it
+        stripped = caption.strip()
+        if stripped.startswith("{") or stripped.startswith("["):
+            try:
+                nested = json.loads(stripped)
+                extracted = self._extract_text(nested)
+                if extracted and not extracted.startswith("{"):
+                    caption = extracted
+            except (json.JSONDecodeError, ValueError):
+                pass
+
         # Normalize excessive blank lines (3+ newlines -> 2)
         caption = re.sub(r"\n{3,}", "\n\n", caption)
 

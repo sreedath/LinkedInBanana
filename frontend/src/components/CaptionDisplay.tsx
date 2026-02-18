@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface Props {
   caption: string;
@@ -41,8 +41,13 @@ function cleanCaption(raw: string): string {
 }
 
 export function CaptionDisplay({ caption }: Props) {
-  const [editedCaption, setEditedCaption] = useState(cleanCaption(caption));
+  const [editedCaption, setEditedCaption] = useState(() => cleanCaption(caption));
   const [copied, setCopied] = useState(false);
+
+  // Update when the caption prop changes (e.g. job completes after mount)
+  useEffect(() => {
+    setEditedCaption(cleanCaption(caption));
+  }, [caption]);
 
   async function handleCopy() {
     await navigator.clipboard.writeText(editedCaption);

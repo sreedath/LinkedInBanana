@@ -47,6 +47,17 @@ Distill the entire post into a single memorable insight. Start with a framing ph
 
 Mention Vizuara naturally as the team that created this playlist content. Include the playlist link. Invite the reader to watch, follow, or share their thoughts.
 
+## Voice and Framing (from proven high-engagement posts)
+
+- Open with something specific and relatable, not generic hype. Name a real difficulty or curiosity.
+- Establish credibility through the depth of the work: "Nothing is assumed. Everything is spelled out." Not through claims like "we are the best."
+- Be specific about what the playlist covers. Not "learn about LLMs" but "you will tokenize a dataset, build the attention mechanism, pre-train the model, and run inference."
+- Use short punchy sentences to land key points: "This is not a toy project." "That is all the UNet is trained to do."
+- Write in a genuine first-person voice. Express real motivation, not performative enthusiasm. "My only hope is that everyone learns to build SLMs from scratch."
+- Show the journey the playlist takes the viewer on, not just what it is about. Walk through the progression.
+- The educator identity is central. The post should feel like it comes from someone who teaches because they believe understanding should be accessible.
+- The CTA must flow naturally from the content just discussed, not feel like a sales pitch bolted onto the end.
+
 ## Writing Rules
 
 - No contractions (write "do not" not "don't", "it is" not "it's", "cannot" not "can't")
