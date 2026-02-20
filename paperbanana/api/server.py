@@ -93,7 +93,8 @@ def create_app() -> FastAPI:
         if next_dir.exists():
             app.mount("/_next", StaticFiles(directory=str(next_dir)), name="next-static")
 
-        @app.get("/login{path:path}")
+        @app.get("/login")
+        @app.get("/login/")
         async def serve_login(request: Request):
             """Serve the login page for SPA routing."""
             page = frontend_dir / "login" / "index.html"
@@ -101,7 +102,8 @@ def create_app() -> FastAPI:
                 return FileResponse(str(page), media_type="text/html")
             return FileResponse(str(frontend_dir / "index.html"), media_type="text/html")
 
-        @app.get("/generate{path:path}")
+        @app.get("/generate")
+        @app.get("/generate/")
         async def serve_generate(request: Request):
             """Serve the generate page for SPA routing."""
             page = frontend_dir / "generate" / "index.html"

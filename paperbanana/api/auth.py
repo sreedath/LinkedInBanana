@@ -155,3 +155,8 @@ def seed_default_user() -> None:
     if email and password:
         ensure_user(email, password)
         logger.info("Default user seeded", email=email)
+    else:
+        logger.warning(
+            "AUTH_USER_EMAIL or AUTH_USER_PASSWORD not set — no default user will be created. "
+            "Set these environment variables to enable login."
+        )

@@ -23,13 +23,18 @@ export function AuthGuard({ children }: Props) {
     }
 
     async function verify() {
-      const result = await checkAuth();
-      if (!result.authenticated) {
+      try {
+        const result = await checkAuth();
+        if (!result.authenticated) {
+          router.replace("/login");
+        } else {
+          setAuthenticated(true);
+        }
+      } catch {
         router.replace("/login");
-      } else {
-        setAuthenticated(true);
+      } finally {
+        setChecking(false);
       }
-      setChecking(false);
     }
     verify();
   }, [pathname, router]);

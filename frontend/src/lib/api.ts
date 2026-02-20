@@ -68,7 +68,7 @@ export async function checkAuth(): Promise<{ authenticated: boolean; email: stri
       clearAuthToken();
       return { authenticated: false, email: "" };
     }
-    return res.json();
+    return await res.json();
   } catch {
     return { authenticated: false, email: "" };
   }
