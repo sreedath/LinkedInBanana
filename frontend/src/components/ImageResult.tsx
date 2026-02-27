@@ -40,18 +40,39 @@ export function ImageResult({ imageUrl, playlistTitle, iterationImages = [] }: P
   const downloadTarget = selectedForDownload || finalUrl;
 
   async function handleDownload(url: string) {
+    const filename = `linkedin-${playlistTitle.replace(/[^a-zA-Z0-9]/g, "-")}.png`;
+
+    // For same-origin (production), use direct <a> download — works with
+    // browser cache and the ?token= query param already in the URL.
+    const isSameOrigin = !url.startsWith("http") || new URL(url).origin === window.location.origin;
+    if (isSameOrigin) {
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return;
+    }
+
+    // Cross-origin (local dev): must use fetch to bypass CORS for download.
     try {
       const token = getAuthToken();
       const res = await fetch(url, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
+      if (!res.ok) {
+        throw new Error(`Download failed: ${res.status}`);
+      }
       const blob = await res.blob();
       const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = blobUrl;
-      link.download = `linkedin-${playlistTitle.replace(/[^a-zA-Z0-9]/g, "-")}.png`;
+      link.download = filename;
+      document.body.appendChild(link);
       link.click();
-      URL.revokeObjectURL(blobUrl);
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
     } catch {
       window.open(url, "_blank");
     }
