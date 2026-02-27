@@ -6,13 +6,16 @@ import base64
 from io import BytesIO
 from typing import Optional
 
+import logging
+
 import structlog
 from PIL import Image
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import before_sleep_log, retry, stop_after_attempt, wait_exponential
 
 from paperbanana.providers.base import ImageGenProvider
 
 logger = structlog.get_logger()
+_retry_logger = logging.getLogger("paperbanana.providers.image_gen.google_imagen")
 
 
 class GoogleImagenGen(ImageGenProvider):
@@ -75,7 +78,11 @@ class GoogleImagenGen(ImageGenProvider):
             return "2K"
         return "4K"
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=10))
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(min=1, max=10),
+        before_sleep=before_sleep_log(_retry_logger, logging.WARNING),
+    )
     async def generate(
         self,
         prompt: str,

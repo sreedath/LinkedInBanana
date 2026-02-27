@@ -4,14 +4,17 @@ from __future__ import annotations
 
 from typing import Optional
 
+import logging
+
 import structlog
 from PIL import Image
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import before_sleep_log, retry, stop_after_attempt, wait_exponential
 
 from paperbanana.core.utils import image_to_base64
 from paperbanana.providers.base import VLMProvider
 
 logger = structlog.get_logger()
+_retry_logger = logging.getLogger("paperbanana.providers.vlm.gemini")
 
 
 class GeminiVLM(VLMProvider):
@@ -49,7 +52,11 @@ class GeminiVLM(VLMProvider):
     def is_available(self) -> bool:
         return self._api_key is not None
 
-    @retry(stop=stop_after_attempt(8), wait=wait_exponential(min=2, max=120))
+    @retry(
+        stop=stop_after_attempt(8),
+        wait=wait_exponential(min=2, max=120),
+        before_sleep=before_sleep_log(_retry_logger, logging.WARNING),
+    )
     async def generate(
         self,
         prompt: str,
